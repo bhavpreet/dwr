@@ -51,7 +51,7 @@ func runWeb() {
 	// Routes
 	e.POST("/register/:key", addKeyWeights)
 	e.GET("/:key", getValue)
-	e.GET("/hello", hello)
+	e.DELETE("/:key", deleteKey)
 
 	// Start server
 	e.Logger.Fatal(e.Start(":30300"))
@@ -148,6 +148,20 @@ func getValue(c echo.Context) error { // for lack of a better name
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"key": retKey})
+}
+
+func deleteKey(c echo.Context) error {
+	key := c.Param("key")
+	if len(key) == 0 {
+		c.JSON(http.StatusBadRequest, nil)
+	}
+
+	// Remove key from store
+	err := rClient.Del("key").Err()
+	if err != nil {
+		return c.JSON(http.StatusNotFound, nil)
+	}
+	return c.JSON(http.StatusOK, "Deleted")
 }
 
 func main() {

@@ -1,78 +1,63 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"sync"
-
-	"github.com/go-redis/redis"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
+	"sort"
 )
 
-const REDIS_WEIGHTS_KEY = "DWR_WEIGHTS"
+const RedisWeightsKey = "DWR_WEIGHTS"
 
-type WeightsBundle struct {
-	sync.RWMutex
-	uw map[string]int32 // userWeights
-	dw map[string]int32 // deducedWeights
+type kw struct {
+	key    string
+	weight int
 }
 
-type Weights map[string]WeightsBundle
+type kwA []kw
 
-func init() {
-	client := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+type weightsBundle struct {
+	UW map[string]int `json:"uw"` // userWeights
+	DW kwA            `json:"dw"` // deducedWeights
+	TW int            `json:"tw"` // total weight
+}
 
-	val, err := client.Get("key").Result()
-	if err != nil {
-		panic(err)
+type weights map[string]*weightsBundle
+
+// sort interface
+func (_kw kwA) Len() int {
+	return len(_kw)
+}
+
+func (_kw kwA) Less(i, j int) bool {
+	return _kw[i].weight < _kw[j].weight
+}
+
+func (_kw kwA) Swap(i, j int) {
+	_kw[i], _kw[j] = _kw[j], _kw[i]
+}
+
+func (x *weightsBundle) ComputeWeights() {
+
+	kwa := make(kwA, 0) // kw(a) is an array
+
+	for k := range x.UW {
+		kwa = append(kwa, kw{k, x.UW[k]})
 	}
 
-	fmt.Println("key", val)
+	// Sorting time
+	sort.Stable(kwa)
 
-	// we check in redis if we already have some data
+	var _gcd int
 
-}
+	for idx, kw := range kwa {
+		if kw.weight != 0 {
+			_gcd = deduceGcd(kw.weight, kwa[idx+1:])
+			break
+		}
+	}
 
-func run_web() {
-	e := echo.New()
-
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	// Routes
-	e.POST("/add-weights", addWeights)
-	e.PUT("/update-weights/:key", updateWeights)
-	e.GET("/:key", getValue)
-	e.GET("/hello", hello)
-
-	// Start server
-	e.Logger.Fatal(e.Start(":30300"))
-}
-
-// Handlers
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!")
-}
-
-func addWeights(c echo.Context) error {
-	return c.String(http.StatusOK, "okay")
-}
-
-func updateWeights(c echo.Context) error {
-	return c.String(http.StatusOK, "okay")
-}
-
-func getValue(c echo.Context) error { // for lack of a better name
-	key := c.Param("key")
-	return c.String(http.StatusOK, key)
-}
-
-func main() {
-	run_web()
+	// fmt.Println("gcd : ", _gcd)
+	// fmt.Println(kwa)
+	for key := range x.UW {
+		x.DW = append(x.DW, kw{key, x.UW[key] / _gcd})
+		x.TW += x.UW[key] / _gcd
+	}
 }

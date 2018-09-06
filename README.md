@@ -2,21 +2,21 @@
 Diminishing Weighted Random Distribution implementation, with state save
 
 # Input Register json
-    
+POST /register/myKey JSON:
 json := {
-            "key" : "myKey",
-            "weights" : {
                 "weight_1" : 1,
                 "weight_2" : 2,
                 "weight_heavy": 99
-            }
         }
 
 # Query
-Request : GET <host>?key="myKey"
+Request : GET <host>/myKey
 
 # Response
-{ "value": "weight_heavy" }
+{ "key": "weight_heavy" }
+
+# DELETE
+Request: DELETE <host>/myKey
 
     
     

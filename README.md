@@ -1,7 +1,7 @@
 # dwr
 Diminishing Weighted Random Distribution implementation, with state save.
 This can be used for various distributions to distribute farely among a group
-In use at [a link](https://www.mojhi.com)
+In use at [www.mojhi.com](https://www.mojhi.com)
 
 # Input Register json
 POST /myKey JSON:

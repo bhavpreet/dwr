@@ -2,7 +2,7 @@
 Diminishing Weighted Random Distribution implementation, with state save
 
 # Input Register json
-POST /register/myKey JSON:
+POST /myKey JSON:
 json := {
                 "weight_1" : 1,
                 "weight_2" : 2,

@@ -29,6 +29,6 @@ func deduceGcd(res int, w kwA) int {
 		return res
 	}
 
-	res = gcd(res, w[0].weight)
+	res = gcd(res, w[0].Weight)
 	return deduceGcd(res, w[1:])
 }

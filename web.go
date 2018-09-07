@@ -2,16 +2,16 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
+	"os"
 	"reflect"
 
 	"github.com/go-redis/redis"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	config "github.com/micro/go-config"
-	"github.com/micro/go-config/source/file"
 )
 
 var (
@@ -20,25 +20,23 @@ var (
 )
 
 func _init() {
+
 	// Load json config file
-	config.Load(file.NewSource(
-		file.WithPath("config.json"),
-	))
+	if fd, err := os.Open("config.json"); err == nil {
+		_configJSON, _ = ioutil.ReadAll(fd)
+		fd.Close()
+	}
 
-	config.Scan(&conf)
-
-	rClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
-
-	val, err := rClient.Get("key").Result()
-	if err != nil {
+	if err := json.Unmarshal(_configJSON, &conf); err != nil {
 		panic(err)
 	}
 
-	fmt.Println("key", val)
+	log.Printf(conf.Redis.Address)
+	rClient = redis.NewClient(&redis.Options{
+		Addr:     conf.Redis.Address,
+		Password: conf.Redis.Password, // no password set
+		DB:       conf.Redis.DB,       // use default DB
+	})
 }
 
 func runWeb() {
@@ -49,12 +47,12 @@ func runWeb() {
 	e.Use(middleware.Recover())
 
 	// Routes
-	e.POST("/register/:key", addKeyWeights)
+	e.POST("/:key", addKeyWeights)
 	e.GET("/:key", getValue)
 	e.DELETE("/:key", deleteKey)
 
 	// Start server
-	e.Logger.Fatal(e.Start(":30300"))
+	e.Logger.Fatal(e.Start(":80"))
 }
 
 // Handlers
@@ -74,7 +72,7 @@ func addKeyWeights(c echo.Context) error {
 	}
 
 	wm := make(map[string]int)
-	if err := c.Bind(wm); err != nil {
+	if err := c.Bind(&wm); err != nil {
 		return c.JSON(http.StatusNotAcceptable, nil)
 	}
 
@@ -100,7 +98,7 @@ func addKeyWeights(c echo.Context) error {
 
 	// Write to store
 	if jSr, err := json.Marshal(w); err == nil {
-		if err := rClient.Set(key, jSr, 0).Err(); err != nil {
+		if err := rClient.Set(conf.Redis.Prefix+key, jSr, 0).Err(); err != nil {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
 	} else {
@@ -127,10 +125,10 @@ func getValue(c echo.Context) error { // for lack of a better name
 			wb := w[key]
 			r := rand.Intn(wb.TW) + 1
 			for idx, cw := range wb.DW {
-				sum = sum + cw.weight
+				sum = sum + cw.Weight
 				if r <= sum {
-					wb.DW[idx].weight--
-					retKey = wb.DW[idx].key
+					wb.DW[idx].Weight--
+					retKey = wb.DW[idx].Key
 					wb.TW--
 					if wb.TW == 0 {
 						//free(wb.DW)
@@ -140,6 +138,17 @@ func getValue(c echo.Context) error { // for lack of a better name
 					break
 				}
 			}
+			// We have to push the result back to store
+			if jSr, err := json.Marshal(w); err == nil {
+				if err := rClient.Set(
+					conf.Redis.Prefix+key,
+					jSr, 0).Err(); err != nil {
+					return c.JSON(http.StatusInternalServerError, nil)
+				}
+			} else {
+				return c.JSON(http.StatusInternalServerError, nil)
+			}
+
 		} else {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
@@ -157,11 +166,11 @@ func deleteKey(c echo.Context) error {
 	}
 
 	// Remove key from store
-	err := rClient.Del("key").Err()
+	_, err := rClient.Del(conf.Redis.Prefix + key).Result()
 	if err != nil {
 		return c.JSON(http.StatusNotFound, nil)
 	}
-	return c.JSON(http.StatusOK, "Deleted")
+	return c.JSON(http.StatusOK, map[string]string{"message": "Deleted"})
 }
 
 func main() {

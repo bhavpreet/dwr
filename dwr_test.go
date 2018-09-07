@@ -12,7 +12,7 @@ func TestComputeWeights(t *testing.T) {
 	wb.ComputeWeights()
 
 	for _, v := range wb.DW {
-		if v.key == "k1" && v.weight != 3 {
+		if v.Key == "k1" && v.Weight != 3 {
 			t.Error("k!=3")
 		}
 	}

@@ -7,8 +7,8 @@ import (
 const RedisWeightsKey = "DWR_WEIGHTS"
 
 type kw struct {
-	key    string
-	weight int
+	Key    string `json:"key"`
+	Weight int    `json:"weight"`
 }
 
 type kwA []kw
@@ -27,7 +27,7 @@ func (_kw kwA) Len() int {
 }
 
 func (_kw kwA) Less(i, j int) bool {
-	return _kw[i].weight < _kw[j].weight
+	return _kw[i].Weight < _kw[j].Weight
 }
 
 func (_kw kwA) Swap(i, j int) {
@@ -48,8 +48,8 @@ func (x *weightsBundle) ComputeWeights() {
 	var _gcd int
 
 	for idx, kw := range kwa {
-		if kw.weight != 0 {
-			_gcd = deduceGcd(kw.weight, kwa[idx+1:])
+		if kw.Weight != 0 {
+			_gcd = deduceGcd(kw.Weight, kwa[idx+1:])
 			break
 		}
 	}

@@ -31,12 +31,13 @@ func _init() {
 		panic(err)
 	}
 
-	log.Printf(conf.Redis.Address)
+	// log.Printf(conf.Redis.Address)
 	rClient = redis.NewClient(&redis.Options{
 		Addr:     conf.Redis.Address,
 		Password: conf.Redis.Password, // no password set
 		DB:       conf.Redis.DB,       // use default DB
 	})
+	log.Println("DWR initialized..")
 }
 
 func runWeb() {
@@ -66,6 +67,9 @@ type weightConstruct struct {
 }
 
 func addKeyWeights(c echo.Context) error {
+	retString := "Created"
+
+	// fmt.Println(c.Request().URL)
 	key := c.Param("key")
 	if len(key) == 0 {
 		c.JSON(http.StatusBadRequest, nil)
@@ -87,8 +91,10 @@ func addKeyWeights(c echo.Context) error {
 		rW := weights{}
 		if err := json.Unmarshal([]byte(val), &rW); err != nil {
 			if reflect.DeepEqual(w[key].UW, rW[key].UW) {
-				return c.JSON(http.StatusOK, "Same Same, Nothing Updated")
+				return c.JSON(http.StatusCreated, "Same")
 			}
+		} else {
+			retString = "Updated"
 		}
 	}
 
@@ -105,7 +111,7 @@ func addKeyWeights(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	return c.JSON(http.StatusOK, "Updated")
+	return c.JSON(http.StatusCreated, retString)
 }
 
 func getValue(c echo.Context) error { // for lack of a better name

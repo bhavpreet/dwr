@@ -1,5 +1,7 @@
 # dwr
-Diminishing Weighted Random Distribution implementation, with state save
+Diminishing Weighted Random Distribution implementation, with state save.
+This can be used for various distributions to distribute farely among a group
+In use at [www.mojhi.com](https://www.mojhi.com)
 
 # Input Register json
 POST /myKey JSON:
@@ -9,13 +11,13 @@ json := {
                 "weight_heavy": 99
         }
 
-# Query
-Request : GET <host>/myKey
-
-# Response
+# REQUESTS
+## GET : 
+GET <host>/myKey
+### Response
 { "key": "weight_heavy" }
 
-# DELETE
+## DELETE
 Request: DELETE <host>/myKey
 
     

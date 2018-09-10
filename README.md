@@ -11,13 +11,13 @@ json := {
                 "weight_heavy": 99
         }
 
-# Query
-Request : GET <host>/myKey
-
-# Response
+# REQUESTS
+## GET : 
+GET <host>/myKey
+### Response
 { "key": "weight_heavy" }
 
-# DELETE
+## DELETE
 Request: DELETE <host>/myKey
 
     

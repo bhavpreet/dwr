@@ -2,7 +2,8 @@ package main
 
 var _configJSON = []byte(`{
 	"redis": {
-		"address" : "redis:6379",
+		"host" : "redis",
+		"port" : "6379",
 		"password": "",
 		"db"      : 0,
 		"prefix"  : "dwr_"
@@ -12,7 +13,8 @@ var _configJSON = []byte(`{
 
 type dwrConfig struct {
 	Redis struct {
-		Address  string `json:"address"`
+		Host     string `json:"host"`
+		Port     string `json:"port"`
 		Password string `json:"password"`
 		DB       int    `json:"db"`
 		Prefix   string `json:"prefix"`

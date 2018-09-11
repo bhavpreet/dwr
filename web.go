@@ -35,7 +35,7 @@ func _init() {
 	// env takes precedence
 	redisNode := os.Getenv("REDIS_HOST")
 	if len(redisNode) > 0 {
-		conf.Redis.Address = redisNode
+		conf.Redis.Host = redisNode
 	}
 
 	dbName := os.Getenv("REDIS_DB")
@@ -52,7 +52,7 @@ func _init() {
 
 	// log.Printf(conf.Redis.Address)
 	rClient = redis.NewClient(&redis.Options{
-		Addr:     conf.Redis.Address,
+		Addr:     conf.Redis.Host + ":" + conf.Redis.Port,
 		Password: conf.Redis.Password, // no password set
 		DB:       conf.Redis.DB,       // use default DB
 	})

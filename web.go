@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"strconv"
 
 	"github.com/go-redis/redis"
 	"github.com/labstack/echo"
@@ -29,6 +30,24 @@ func _init() {
 
 	if err := json.Unmarshal(_configJSON, &conf); err != nil {
 		panic(err)
+	}
+
+	// env takes precedence
+	redisNode := os.Getenv("REDIS_NODE")
+	if len(redisNode) > 0 {
+		conf.Redis.Address = redisNode
+	}
+
+	dbName := os.Getenv("REDIS_DB")
+	if len(dbName) > 0 {
+		if i, err := strconv.Atoi(dbName); err == nil {
+			conf.Redis.DB = i
+		}
+	}
+
+	rPass := os.Getenv("REDIS_PASS")
+	if len(rPass) == 0 {
+		conf.Redis.Password = rPass
 	}
 
 	// log.Printf(conf.Redis.Address)
@@ -87,13 +106,20 @@ func addKeyWeights(c echo.Context) error {
 	// Before we computeWeights; lets retrieve existing entry for the same
 	// key if it exists and try to compare. If same, we can ignore
 	if val, err := rClient.Get(
-		conf.Redis.Prefix + key).Result(); err != redis.Nil {
-		rW := weights{}
+		conf.Redis.Prefix + key).Result(); err == nil {
+		rW := make(weights)
 		if err := json.Unmarshal([]byte(val), &rW); err != nil {
-			if reflect.DeepEqual(w[key].UW, rW[key].UW) {
-				return c.JSON(http.StatusCreated, "Same")
+			if rW[key].UW != nil {
+				if reflect.DeepEqual(w[key].UW, rW[key].UW) {
+					return c.JSON(http.StatusCreated, "Same")
+				}
+			} else { // we compute
+				retString = "Updated"
 			}
-		} else {
+		} else if err != nil {
+			panic(err)
+		} else if err == redis.Nil {
+			// nothing, we compute
 			retString = "Updated"
 		}
 	}
@@ -105,10 +131,10 @@ func addKeyWeights(c echo.Context) error {
 	// Write to store
 	if jSr, err := json.Marshal(w); err == nil {
 		if err := rClient.Set(conf.Redis.Prefix+key, jSr, 0).Err(); err != nil {
-			return c.JSON(http.StatusInternalServerError, nil)
+			return c.JSON(http.StatusInternalServerError, err)
 		}
 	} else {
-		return c.JSON(http.StatusInternalServerError, nil)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusCreated, retString)
@@ -125,7 +151,7 @@ func getValue(c echo.Context) error { // for lack of a better name
 
 	// retrieve the weights from store
 	if val, err := rClient.Get(
-		conf.Redis.Prefix + key).Result(); err != redis.Nil {
+		conf.Redis.Prefix + key).Result(); err == nil {
 		w := weights{}
 		if err := json.Unmarshal([]byte(val), &w); err == nil {
 			wb := w[key]
@@ -158,8 +184,11 @@ func getValue(c echo.Context) error { // for lack of a better name
 		} else {
 			return c.JSON(http.StatusInternalServerError, nil)
 		}
-	} else { // we did not find it 404
+	} else if err == redis.Nil { // we did not find it 404
 		return c.JSON(http.StatusNotFound, nil)
+	} else {
+		panic(err)
+		//return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	return c.JSON(http.StatusOK, map[string]string{"key": retKey})

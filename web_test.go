@@ -11,24 +11,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestWeights(t *testing.T) {
-	c1 := []byte(`{
+var (
+	c1 = []byte(`{
 				"abc": 10,
 				"bcd": 15,
 				"cde": 25,
 				"def": 50
 			}`)
 
-	c2 := []byte(`{
+	c2 = []byte(`{
 			"a":10,
 			"b":20,
 			"c":30
 		  }`)
+)
 
-	_ = c2
-
-	_init()
-	e := echo.New()
+func createOrUpdate(e *echo.Echo, t *testing.T) {
 
 	// Post
 	req := httptest.NewRequest(echo.POST, "/", bytes.NewReader(c1))
@@ -43,23 +41,34 @@ func TestWeights(t *testing.T) {
 
 	// Assertions
 	if assert.NoError(t, addKeyWeights(c)) {
-		t.Log(rec.Code)
+		// t.Log(rec.Code)
 		assert.Equal(t, http.StatusCreated, rec.Code)
 	}
+}
 
+func TestWeights(t *testing.T) {
+	_init()
+	e := echo.New()
+
+	createOrUpdate(e, t)
 	result := map[string]int{}
 
 	jsonRes := map[string]string{}
 
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 100*5; i++ {
 		// GET
-		req = httptest.NewRequest(echo.GET, "/", bytes.NewReader(c1))
-		rec = httptest.NewRecorder()
+		req := httptest.NewRequest(echo.GET, "/", bytes.NewReader(c1))
+		rec := httptest.NewRecorder()
 
-		c = e.NewContext(req, rec)
+		c := e.NewContext(req, rec)
 		c.SetPath("/:key")
 		c.SetParamNames("key")
 		c.SetParamValues("c1")
+
+		// try to simulate an update in between
+		if i%20 == 0 {
+			createOrUpdate(e, t)
+		}
 
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		// Assertions
@@ -74,8 +83,8 @@ func TestWeights(t *testing.T) {
 		}
 	}
 
-	assert.Equal(t, result["abc"], 10)
-	assert.Equal(t, result["bcd"], 15)
-	assert.Equal(t, result["cde"], 25)
-	assert.Equal(t, result["def"], 50)
+	assert.Equal(t, result["abc"], 10*5)
+	assert.Equal(t, result["bcd"], 15*5)
+	assert.Equal(t, result["cde"], 25*5)
+	assert.Equal(t, result["def"], 50*5)
 }

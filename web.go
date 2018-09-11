@@ -57,6 +57,7 @@ func _init() {
 		DB:       conf.Redis.DB,       // use default DB
 	})
 	log.Println("DWR initialized..")
+	log.Println("With config ", conf)
 }
 
 func runWeb() {

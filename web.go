@@ -33,7 +33,7 @@ func _init() {
 	}
 
 	// env takes precedence
-	redisNode := os.Getenv("REDIS_NODE")
+	redisNode := os.Getenv("REDIS_HOST")
 	if len(redisNode) > 0 {
 		conf.Redis.Address = redisNode
 	}

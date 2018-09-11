@@ -112,15 +112,14 @@ func addKeyWeights(c echo.Context) error {
 			if rW[key].UW != nil {
 				if reflect.DeepEqual(w[key].UW, rW[key].UW) {
 					return c.JSON(http.StatusCreated, "Same")
-				}
-			} else { // we compute
+				} // else we compute
 				retString = "Updated"
+			} else if err == redis.Nil {
+				// nothing, we compute
+				retString = "Updated"
+			} else if err != nil {
+				panic(err)
 			}
-		} else if err != nil {
-			panic(err)
-		} else if err == redis.Nil {
-			// nothing, we compute
-			retString = "Updated"
 		}
 	}
 

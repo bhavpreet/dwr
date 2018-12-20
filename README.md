@@ -1,6 +1,6 @@
 # dwr
 Diminishing Weighted Random Distribution implementation, with state save.
-This can be used for various distributions to distribute farely among a group
+This can be used for various distributions to distribute fairly among a group
 In use at [www.mojhi.com](https://www.mojhi.com)
 
 # Input Register json
